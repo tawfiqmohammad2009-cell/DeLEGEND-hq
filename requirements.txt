@@ -1,3 +1,6 @@
 flask
 gunicorn
 google-genai
+openai
+flask
+gunicorn
