@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, jsonify
 from openai import OpenAI
 import os
+import traceback
 
 app = Flask(__name__)
 
@@ -21,7 +22,10 @@ def chat():
         )
         return jsonify({"response": response.choices[0].message.content})
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        # This will print the full error stack in your Render logs
+        traceback.print_exc()
+        # This sends the exact error message back to the chat UI so you can read it
+        return jsonify({"response": f"Debug Error: {str(e)}"}), 200
 
 @app.route('/api/generate-graphic', methods=['POST'])
 def generate_graphic():
