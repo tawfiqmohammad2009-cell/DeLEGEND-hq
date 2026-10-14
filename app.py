@@ -1,11 +1,10 @@
 from flask import Flask, render_template, request, jsonify
-from google import genai
+from openai import OpenAI
 import os
 
 app = Flask(__name__)
 
-# Initialize the Google GenAI client (uses GEMINI_API_KEY from Render)
-client = genai.Client()
+client = OpenAI()
 
 @app.route('/')
 def home():
@@ -16,11 +15,11 @@ def chat():
     data = request.json
     user_message = data.get('message', '')
     try:
-        response = client.models.generate_content(
-            model="gemini-1.5-flash",
-            contents=user_message,
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": user_message}]
         )
-        return jsonify({"response": response.text})
+        return jsonify({"response": response.choices[0].message.content})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
