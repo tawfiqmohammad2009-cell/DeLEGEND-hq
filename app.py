@@ -4,7 +4,7 @@ import os
 
 app = Flask(__name__)
 
-# Initialize the Google GenAI client (uses GEMINI_API_KEY from Render)
+# Initialize the Google GenAI client (uses GEMINI_API_KEY set on Render)
 client = genai.Client()
 
 @app.route('/')
@@ -17,7 +17,7 @@ def chat():
     user_message = data.get('message', '')
     try:
         response = client.models.generate_content(
-            model="gemini-3.6-flash",
+            model="gemini-2.5-flash",
             contents=user_message,
         )
         return jsonify({"response": response.text})
@@ -27,11 +27,11 @@ def chat():
 @app.route('/api/generate-graphic', methods=['POST'])
 def generate_graphic():
     data = request.json
-    text = data.get('text', 'DeLEGEND')
+    text = data.get('text', 'DeLEGEND SMART INTELLIGENCE')
     return jsonify({
         "status": "success",
         "message": f"Generated custom graphic for: '{text}'",
-        "author": "DeLEGEND AI-Forge"
+        "author": "DeLEGEND SMART INTELLIGENCE"
     })
 
 if __name__ == '__main__':
