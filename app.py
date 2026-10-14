@@ -63,14 +63,15 @@ def register_user():
 
 @app.route("/chat", methods=["POST"])
 def chat():
-    data = request.json
+    data = request.json or {}
     user_message = data.get("message", "")
     
-    # Get user class level from session or default to SHS
-    class_level = session.get("class_level", "SHS 3")
+    # Safely get class level and convert to string to prevent NoneType crashes
+    raw_class = session.get("class_level") or data.get("class_level") or "SHS 3"
+    class_level_str = str(raw_class).upper()
 
     # Build dynamic system instruction based on class level
-    if "JHS" in class_level.upper():
+    if "JHS" in class_level_str:
         system_instruction = (
             "You are DeLEGEND Smart Intelligence, an expert educational tutor. "
             "The user is a Junior High School (JHS) student. Provide simple, clear, "
@@ -99,4 +100,4 @@ def chat():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=10000)
-            
+    
