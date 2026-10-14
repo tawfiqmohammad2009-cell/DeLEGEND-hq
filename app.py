@@ -4,7 +4,7 @@ import os
 
 app = Flask(__name__)
 
-# Initialize the Google GenAI client (picks up GEMINI_API_KEY from Render)
+# Initialize the Google GenAI client (uses GEMINI_API_KEY from Render)
 client = genai.Client()
 
 @app.route('/')
@@ -17,7 +17,7 @@ def chat():
     user_message = data.get('message', '')
     try:
         response = client.models.generate_content(
-            model="gemini-3.8-flash",
+            model="gemini-1.5-flash",
             contents=user_message,
         )
         return jsonify({"response": response.text})
