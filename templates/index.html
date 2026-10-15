@@ -4,126 +4,68 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DeLEGEND Smart Intelligence</title>
-    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&display=swap" rel="stylesheet">
-    <style>
-        body { background-color: #0f172a; color: #f8fafc; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; min-height: 100vh; margin: 0; padding: 20px; box-sizing: border-box; }
-        .wrapper { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; }
-        .container { width: 100%; max-width: 600px; background: #1e293b; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); display: flex; flex-direction: column; }
-        .main-title { text-align: center; color: #38bdf8; font-size: 1.8rem; margin-top: 0; margin-bottom: 15px; }
-        .mysterious-notice { text-align: center; background: #334155; padding: 15px; border-radius: 8px; border-left: 5px solid #38bdf8; font-style: italic; color: #94a3b8; margin-bottom: 20px; font-size: 0.95rem; line-height: 1.4; }
-        .personalized-text { text-align: center; color: #94a3b8; margin-bottom: 20px; font-size: 0.95rem; }
-        .form-group { margin-bottom: 15px; display: flex; flex-direction: column; gap: 5px; }
-        label { font-size: 0.9rem; color: #cbd5e1; }
-        input { padding: 12px; border-radius: 8px; border: 1px solid #475569; background: #0f172a; color: white; outline: none; font-size: 1rem; }
-        button { padding: 12px 20px; background: #38bdf8; color: #0f172a; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 1rem; margin-top: 10px; transition: background 0.2s; }
-        button:hover { background: #0ea5e9; }
-        
-        #chat-section { display: none; height: 80vh; flex-direction: column; }
-        #chat-box { flex: 1; overflow-y: auto; background: #0f172a; padding: 15px; border-radius: 8px; margin-bottom: 15px; display: flex; flex-direction: column; gap: 10px; }
-        .message { padding: 10px 14px; border-radius: 8px; max-width: 85%; line-height: 1.4; word-wrap: break-word; }
-        .user-msg { background: #38bdf8; color: #0f172a; align-self: flex-end; }
-        .ai-msg { background: #334155; color: #f8fafc; align-self: flex-start; }
-        .input-area { display: flex; gap: 10px; }
-
-        .main-footer { width: 100%; text-align: center; padding: 20px 0; margin-top: auto; }
-        .footer-text { font-family: 'Dancing Script', cursive; font-weight: 700; color: #38bdf8; font-size: 1.4rem; margin: 0; letter-spacing: 1.5px; }
-    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-
-    <div class="wrapper">
-        <!-- User Setup Form -->
-        <div class="container" id="user-form-section">
-            <h1 class="main-title">DeLEGEND Smart Intelligence</h1>
-            
-            <div class="mysterious-notice">
-                "The future isn't just arriving; it's being forged. Step forward, seeker of knowledge, and unlock the circuits of creation."
+    <div class="chat-container">
+        <header>
+            <h1>DeLEGEND AI</h1>
+            <p>Powered by Google Gemini</p>
+        </header>
+        
+        <div id="chat-box" class="chat-box">
+            <div class="message gemini">
+                <strong>Gemini:</strong> Hello! I am online and ready. What would you like to build or discuss?
             </div>
-
-            <p class="personalized-text">Please enter your details to personalize your journey into the data forge.</p>
-            
-            <div class="form-group">
-                <label for="user-name">Full Name</label>
-                <input type="text" id="user-name" placeholder="e.g. John Doe" required>
-            </div>
-            
-            <div class="form-group">
-                <label for="user-class">Class / Level</label>
-                <input type="text" id="user-class" placeholder="e.g. JHS 3, SHS 2..." required>
-            </div>
-
-            <div class="form-group">
-                <label for="user-contact">Contact (Phone or Email)</label>
-                <input type="text" id="user-contact" placeholder="e.g. 024XXXXXXX" required>
-            </div>
-
-            <button onclick="startSession()">Start AI Chat</button>
         </div>
 
-        <!-- AI Chat Interface -->
-        <div class="container" id="chat-section">
-            <h1 class="main-title">DeLEGEND Smart Intelligence</h1>
-            <div id="chat-box"></div>
-            <div class="input-area">
-                <input type="text" id="user-input" placeholder="Ask your question...">
-                <button onclick="sendMessage()">Send</button>
-            </div>
+        <div class="input-area">
+            <input type="text" id="user-input" placeholder="Type your message..." autocomplete="off">
+            <button id="send-btn">Send</button>
         </div>
     </div>
 
-    <footer class="main-footer">
-        <p class="footer-text">Remember his name..!!, DeLEGEND🇬🇭!!</p>
-    </footer>
-
     <script>
-        let userProfile = {};
-
-        async function startSession() {
-            const name = document.getElementById('user-name').value.trim();
-            const userClass = document.getElementById('user-class').value.trim();
-            const contact = document.getElementById('user-contact').value.trim();
-
-            if (!name || !userClass || !contact) {
-                alert("Please fill in all details before continuing!");
-                return;
-            }
-
-            userProfile = { name, class: userClass, contact };
-
-            document.getElementById('user-form-section').style.display = 'none';
-            document.getElementById('chat-section').style.display = 'flex';
-
-            await fetch('/register-user', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(userProfile)
-            });
-
-            const chatBox = document.getElementById('chat-box');
-            chatBox.innerHTML = `<div class="message ai-msg">Hello <b>${name}</b>! I see you are in <b>${userClass}</b>. Ask me any question, and I will tailor my explanations specifically for your level!</div>`;
-        }
+        const chatBox = document.getElementById('chat-box');
+        const userInput = document.getElementById('user-input');
+        const sendBtn = document.getElementById('send-btn');
 
         async function sendMessage() {
-            const inputField = document.getElementById('user-input');
-            const chatBox = document.getElementById('chat-box');
-            const text = inputField.value.trim();
-            if (!text) return;
+            const message = userInput.value.trim();
+            if (!message) return;
 
-            chatBox.innerHTML += `<div class="message user-msg">${text}</div>`;
-            inputField.value = '';
-            chatBox.scrollTop = chatBox.scrollHeight;
+            appendMessage('You', message);
+            userInput.value = '';
 
-            const response = await fetch('/chat', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ message: text, profile: userProfile })
-            });
-            const data = await response.json();
+            try {
+                const res = await fetch('/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: message })
+                });
+                const data = await res.json();
+                if (data.reply) {
+                    appendMessage('Gemini', data.reply);
+                } else {
+                    appendMessage('Error', data.error || 'Something went wrong.');
+                }
+            } catch (err) {
+                appendMessage('Error', 'Failed to connect to server.');
+            }
+        }
 
-            chatBox.innerHTML += `<div class="message ai-msg">${data.reply}</div>`;
+        function appendMessage(sender, text) {
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `message ${sender.toLowerCase()}`;
+            msgDiv.innerHTML = `<strong>${sender}:</strong> ${text}`;
+            chatBox.appendChild(msgDiv);
             chatBox.scrollTop = chatBox.scrollHeight;
         }
+
+        sendBtn.addEventListener('click', sendMessage);
+        userInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendMessage();
+        });
     </script>
 </body>
 </html>
-
