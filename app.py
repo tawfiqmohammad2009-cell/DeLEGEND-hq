@@ -1,13 +1,10 @@
 import os
 from flask import Flask, render_template, request, jsonify
 from google import genai
-from dotenv import load_dotenv
-
-load_dotenv()
 
 app = Flask(__name__)
 
-# Initialize the Gemini Client
+# Initialize the Gemini Client using GEMINI_API_KEY from environment variables
 client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
 
 @app.route("/")
@@ -23,7 +20,6 @@ def chat():
         return jsonify({"error": "Message cannot be empty"}), 400
 
     try:
-        # Use gemini-2.5-flash for fast and reliable responses
         response = client.models.generate_content(
             model="gemini-2.5-flash",
             contents=user_message,

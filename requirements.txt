@@ -1,6 +1,4 @@
 flask
-gunicorn
 google-genai
-openai
-flask
+python-dotenv
 gunicorn
