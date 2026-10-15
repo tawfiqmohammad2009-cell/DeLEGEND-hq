@@ -5,26 +5,37 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DeLEGEND AI</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <!-- Load Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <!-- Load Marked.js to format Markdown responses -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 </head>
 <body>
-    <div class="chat-container">
-        <div class="chat-header">
-            <h2>DeLEGEND AI</h2>
-            <p>Powered by Google Gemini</p>
-        </div>
-        
-        <div class="chat-box" id="chat-box">
-            <div class="message bot-message">
-                <strong>Gemini:</strong> Hello! I am online and ready. What would you like to build or discuss?
+    <div class="app-container">
+        <!-- Header -->
+        <header class="chat-header">
+            <div class="brand-info">
+                <h1>DeLEGEND AI</h1>
+                <span class="status-badge"><span class="status-dot"></span> Powered by Gemini</span>
             </div>
-        </div>
+            <button class="clear-btn" onclick="clearChat()">Clear Chat</button>
+        </header>
+        
+        <!-- Chat Area -->
+        <main class="chat-box" id="chat-box">
+            <div class="message bot-message">
+                <div class="message-sender">DeLEGEND AI</div>
+                <div class="message-content">Hello! I am online and ready. What would you like to build or discuss?</div>
+            </div>
+        </main>
 
-        <div class="input-container">
-            <input type="text" id="user-input" placeholder="Type your message..." onkeypress="handleKeyPress(event)">
-            <button onclick="sendMessage()">Send</button>
-        </div>
+        <!-- Input Area -->
+        <footer class="input-container">
+            <input type="text" id="user-input" placeholder="Type your message here..." onkeypress="handleKeyPress(event)" autocomplete="off">
+            <button id="send-btn" onclick="sendMessage()">Send</button>
+        </footer>
     </div>
 
     <script>
@@ -38,16 +49,22 @@
             // Display user message
             const userDiv = document.createElement("div");
             userDiv.className = "message user-message";
-            userDiv.innerHTML = `<strong>You:</strong> ${escapeHtml(messageText)}`;
+            userDiv.innerHTML = `
+                <div class="message-sender">You</div>
+                <div class="message-content">${escapeHtml(messageText)}</div>
+            `;
             chatBox.appendChild(userDiv);
 
             inputField.value = "";
             chatBox.scrollTop = chatBox.scrollHeight;
 
-            // Display loading state
+            // Display loading indicator
             const loadingDiv = document.createElement("div");
-            loadingDiv.className = "message bot-message";
-            loadingDiv.innerHTML = `<strong>Gemini:</strong> <em>Thinking...</em>`;
+            loadingDiv.className = "message bot-message loading-state";
+            loadingDiv.innerHTML = `
+                <div class="message-sender">DeLEGEND AI</div>
+                <div class="message-content"><em>Thinking...</em></div>
+            `;
             chatBox.appendChild(loadingDiv);
             chatBox.scrollTop = chatBox.scrollHeight;
 
@@ -61,16 +78,35 @@
                 const data = await response.json();
                 
                 if (data.reply) {
-                    // Render formatted Markdown response
-                    loadingDiv.innerHTML = `<strong>Gemini:</strong><br>${marked.parse(data.reply)}`;
+                    loadingDiv.classList.remove("loading-state");
+                    loadingDiv.innerHTML = `
+                        <div class="message-sender">DeLEGEND AI</div>
+                        <div class="message-content">${marked.parse(data.reply)}</div>
+                    `;
                 } else {
-                    loadingDiv.innerHTML = `<strong>Error:</strong> ${data.error || "Failed to get response"}`;
+                    loadingDiv.innerHTML = `
+                        <div class="message-sender">System Error</div>
+                        <div class="message-content error-text">${data.error || "Failed to get response"}</div>
+                    `;
                 }
             } catch (err) {
-                loadingDiv.innerHTML = `<strong>Error:</strong> Network error. Please try again.`;
+                loadingDiv.innerHTML = `
+                    <div class="message-sender">System Error</div>
+                    <div class="message-content error-text">Network error. Please try again.</div>
+                `;
             }
 
             chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        function clearChat() {
+            const chatBox = document.getElementById("chat-box");
+            chatBox.innerHTML = `
+                <div class="message bot-message">
+                    <div class="message-sender">DeLEGEND AI</div>
+                    <div class="message-content">Chat cleared. How can I help you?</div>
+                </div>
+            `;
         }
 
         function handleKeyPress(event) {
