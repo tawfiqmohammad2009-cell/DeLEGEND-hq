@@ -3,69 +3,85 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DeLEGEND Smart Intelligence</title>
+    <title>DeLEGEND AI</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <!-- Load Marked.js to format Markdown responses -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 </head>
 <body>
     <div class="chat-container">
-        <header>
-            <h1>DeLEGEND AI</h1>
+        <div class="chat-header">
+            <h2>DeLEGEND AI</h2>
             <p>Powered by Google Gemini</p>
-        </header>
+        </div>
         
-        <div id="chat-box" class="chat-box">
-            <div class="message gemini">
+        <div class="chat-box" id="chat-box">
+            <div class="message bot-message">
                 <strong>Gemini:</strong> Hello! I am online and ready. What would you like to build or discuss?
             </div>
         </div>
 
-        <div class="input-area">
-            <input type="text" id="user-input" placeholder="Type your message..." autocomplete="off">
-            <button id="send-btn">Send</button>
+        <div class="input-container">
+            <input type="text" id="user-input" placeholder="Type your message..." onkeypress="handleKeyPress(event)">
+            <button onclick="sendMessage()">Send</button>
         </div>
     </div>
 
     <script>
-        const chatBox = document.getElementById('chat-box');
-        const userInput = document.getElementById('user-input');
-        const sendBtn = document.getElementById('send-btn');
-
         async function sendMessage() {
-            const message = userInput.value.trim();
-            if (!message) return;
+            const inputField = document.getElementById("user-input");
+            const chatBox = document.getElementById("chat-box");
+            const messageText = inputField.value.trim();
 
-            appendMessage('You', message);
-            userInput.value = '';
+            if (!messageText) return;
+
+            // Display user message
+            const userDiv = document.createElement("div");
+            userDiv.className = "message user-message";
+            userDiv.innerHTML = `<strong>You:</strong> ${escapeHtml(messageText)}`;
+            chatBox.appendChild(userDiv);
+
+            inputField.value = "";
+            chatBox.scrollTop = chatBox.scrollHeight;
+
+            // Display loading state
+            const loadingDiv = document.createElement("div");
+            loadingDiv.className = "message bot-message";
+            loadingDiv.innerHTML = `<strong>Gemini:</strong> <em>Thinking...</em>`;
+            chatBox.appendChild(loadingDiv);
+            chatBox.scrollTop = chatBox.scrollHeight;
 
             try {
-                const res = await fetch('/chat', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ message: message })
+                const response = await fetch("/chat", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ message: messageText })
                 });
-                const data = await res.json();
+
+                const data = await response.json();
+                
                 if (data.reply) {
-                    appendMessage('Gemini', data.reply);
+                    // Render formatted Markdown response
+                    loadingDiv.innerHTML = `<strong>Gemini:</strong><br>${marked.parse(data.reply)}`;
                 } else {
-                    appendMessage('Error', data.error || 'Something went wrong.');
+                    loadingDiv.innerHTML = `<strong>Error:</strong> ${data.error || "Failed to get response"}`;
                 }
             } catch (err) {
-                appendMessage('Error', 'Failed to connect to server.');
+                loadingDiv.innerHTML = `<strong>Error:</strong> Network error. Please try again.`;
             }
-        }
 
-        function appendMessage(sender, text) {
-            const msgDiv = document.createElement('div');
-            msgDiv.className = `message ${sender.toLowerCase()}`;
-            msgDiv.innerHTML = `<strong>${sender}:</strong> ${text}`;
-            chatBox.appendChild(msgDiv);
             chatBox.scrollTop = chatBox.scrollHeight;
         }
 
-        sendBtn.addEventListener('click', sendMessage);
-        userInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') sendMessage();
-        });
+        function handleKeyPress(event) {
+            if (event.key === "Enter") {
+                sendMessage();
+            }
+        }
+
+        function escapeHtml(text) {
+            return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        }
     </script>
 </body>
 </html>
