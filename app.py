@@ -1,42 +1,37 @@
-from flask import Flask, render_template, request, jsonify
-from openai import OpenAI
 import os
-import traceback
+from flask import Flask, render_template, request, jsonify
+from google import genai
+from dotenv import load_dotenv
+
+load_dotenv()
 
 app = Flask(__name__)
 
-client = OpenAI()
+# Initialize the Gemini Client
+client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
 
-@app.route('/')
-def home():
-    return render_template('index.html')
+@app.route("/")
+def index():
+    return render_template("index.html")
 
-@app.route('/chat', methods=['POST'])
+@app.route("/chat", methods=["POST"])
 def chat():
-    data = request.json
-    user_message = data.get('message', '')
+    data = request.get_json()
+    user_message = data.get("message", "")
+    
+    if not user_message:
+        return jsonify({"error": "Message cannot be empty"}), 400
+
     try:
-        response = client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[{"role": "user", "content": user_message}]
+        # Use gemini-2.5-flash for fast and reliable responses
+        response = client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=user_message,
         )
-        return jsonify({"response": response.choices[0].message.content})
+        return jsonify({"reply": response.text})
     except Exception as e:
-        # This will print the full error stack in your Render logs
-        traceback.print_exc()
-        # This sends the exact error message back to the chat UI so you can read it
-        return jsonify({"response": f"Debug Error: {str(e)}"}), 200
+        print(f"Error: {e}")
+        return jsonify({"error": str(e)}), 500
 
-@app.route('/api/generate-graphic', methods=['POST'])
-def generate_graphic():
-    data = request.json
-    text = data.get('text', 'DeLEGEND SMART INTELLIGENCE')
-    return jsonify({
-        "status": "success",
-        "message": f"Generated custom graphic for: '{text}'",
-        "author": "DeLEGEND SMART INTELLIGENCE"
-    })
-
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
-
+if __name__ == "__main__":
+    app.run(debug=True)
