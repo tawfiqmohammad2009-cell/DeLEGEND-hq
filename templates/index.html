@@ -2,43 +2,129 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DeLEGEND AI</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <!-- Load Google Fonts -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>DeLEGEND HQ — Intelligence Redefined</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=3.0">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Load Marked.js to format Markdown responses -->
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 </head>
 <body>
-    <div class="app-container">
-        <!-- Header -->
-        <header class="chat-header">
-            <div class="brand-info">
-                <h1>DeLEGEND AI</h1>
-                <span class="status-badge"><span class="status-dot"></span> Brought to life by DeLEGEND</span>
-            </div>
-            <button class="clear-btn" onclick="clearChat()">Clear Chat</button>
-        </header>
-        
-        <!-- Chat Area -->
-        <main class="chat-box" id="chat-box">
-            <div class="message bot-message">
-                <div class="message-sender">DeLEGEND AI</div>
-                <div class="message-content">Hello! I am online and ready. What would you like to build or discuss?</div>
-            </div>
-        </main>
 
-        <!-- Input Area -->
-        <footer class="input-container">
-            <input type="text" id="user-input" placeholder="Type your message here..." onkeypress="handleKeyPress(event)" autocomplete="off">
-            <button id="send-btn" onclick="sendMessage()">Send</button>
-        </footer>
+    <!-- HERO LANDING SECTION -->
+    <section id="landing-page" class="landing-container">
+        <div class="landing-content">
+            <div class="logo-badge">
+                <span class="logo-symbol">❖</span>
+                <span class="logo-text">DeLEGEND HQ</span>
+            </div>
+            <h1 class="hero-title">NEXT-GEN INTELLIGENCE</h1>
+            <p class="hero-subtitle">Brought to life by DeLEGEND. Experience tailored, rapid-response AI engineered for total clarity and high performance.</p>
+            <button class="cta-gold-btn" onclick="enterApp()">
+                <span>START CHATTING</span>
+                <span class="btn-arrow">→</span>
+            </button>
+        </div>
+    </section>
+
+    <!-- MAIN CHAT APPLICATION -->
+    <div id="chat-app" class="app-container hidden">
+        
+        <!-- SIDEBAR CHAT HISTORY -->
+        <aside id="sidebar" class="sidebar">
+            <div class="sidebar-header">
+                <div class="brand-title">DeLEGEND HQ</div>
+                <button class="close-sidebar" onclick="toggleSidebar()">✕</button>
+            </div>
+            <button class="new-chat-btn" onclick="startNewChat()">+ New Session</button>
+            <div class="history-label">Saved Conversations</div>
+            <div id="history-list" class="history-list"></div>
+        </aside>
+
+        <div class="overlay" id="overlay" onclick="toggleSidebar()"></div>
+
+        <!-- MAIN INTERFACE -->
+        <div class="main-wrapper">
+            <!-- HEADER -->
+            <header class="chat-header">
+                <div class="header-left">
+                    <button class="menu-btn" onclick="toggleSidebar()">☰</button>
+                    <div class="brand-info">
+                        <h1>DeLEGEND AI</h1>
+                        <span class="status-badge"><span class="status-dot"></span> Brought to life by DeLEGEND</span>
+                    </div>
+                </div>
+                <button class="clear-btn" onclick="clearChat()">Reset Chat</button>
+            </header>
+            
+            <!-- CHAT AREA -->
+            <main class="chat-box" id="chat-box">
+                <div class="message bot-message">
+                    <div class="message-header">
+                        <span class="message-sender">DeLEGEND AI</span>
+                    </div>
+                    <div class="message-content">Welcome to DeLEGEND AI. Choose a prompt below or type your query to begin.</div>
+                </div>
+
+                <!-- QUICK ACTIONS -->
+                <div id="quick-actions" class="quick-actions-container">
+                    <button class="quick-btn" onclick="sendQuickAction('Explain a Topic')">💡 Explain a Topic</button>
+                    <button class="quick-btn" onclick="sendQuickAction('Write Code')">💻 Write Code</button>
+                    <button class="quick-btn" onclick="sendQuickAction('Solve a Problem')">🧩 Solve a Problem</button>
+                    <button class="quick-btn" onclick="sendQuickAction('Generate Ideas')">🚀 Generate Ideas</button>
+                </div>
+            </main>
+
+            <!-- INPUT AREA -->
+            <footer class="input-container">
+                <div class="input-wrapper">
+                    <textarea id="user-input" placeholder="Type your prompt..." rows="1" onkeypress="handleKeyPress(event)"></textarea>
+                    <button id="send-btn" onclick="sendMessage()">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+                    </button>
+                </div>
+            </footer>
+        </div>
     </div>
 
     <script>
+        let conversationHistory = [];
+        let savedSessions = JSON.parse(localStorage.getItem('delegend_sessions') || '[]');
+        let currentSessionId = Date.now();
+
+        function enterApp() {
+            document.getElementById('landing-page').classList.add('fade-out');
+            setTimeout(() => {
+                document.getElementById('landing-page').style.display = 'none';
+                document.getElementById('chat-app').classList.remove('hidden');
+                renderHistoryList();
+            }, 300);
+        }
+
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('open');
+            document.getElementById('overlay').classList.toggle('active');
+        }
+
+        function handleKeyPress(event) {
+            if (event.key === "Enter" && !event.shiftKey) {
+                event.preventDefault();
+                sendMessage();
+            }
+        }
+
+        function sendQuickAction(action) {
+            const prompts = {
+                'Explain a Topic': 'Explain Quantum Computing in simple terms.',
+                'Write Code': 'Write a Python script for a Flask API.',
+                'Solve a Problem': 'How do I debug high CPU load on a Linux server?',
+                'Generate Ideas': 'Give me 5 unique web application ideas.'
+            };
+            document.getElementById('user-input').value = prompts[action] || action;
+            sendMessage();
+        }
+
         async function sendMessage() {
             const inputField = document.getElementById("user-input");
             const chatBox = document.getElementById("chat-box");
@@ -46,24 +132,21 @@
 
             if (!messageText) return;
 
-            // Display user message
-            const userDiv = document.createElement("div");
-            userDiv.className = "message user-message";
-            userDiv.innerHTML = `
-                <div class="message-sender">You</div>
-                <div class="message-content">${escapeHtml(messageText)}</div>
-            `;
-            chatBox.appendChild(userDiv);
+            const qa = document.getElementById("quick-actions");
+            if (qa) qa.style.display = "none";
+
+            appendMessage("You", messageText, "user-message");
+            conversationHistory.push({ sender: "user", text: messageText });
 
             inputField.value = "";
             chatBox.scrollTop = chatBox.scrollHeight;
 
-            // Display loading indicator
             const loadingDiv = document.createElement("div");
             loadingDiv.className = "message bot-message loading-state";
+            loadingDiv.id = "typing-indicator";
             loadingDiv.innerHTML = `
-                <div class="message-sender">DeLEGEND AI</div>
-                <div class="message-content"><em>Thinking...</em></div>
+                <div class="message-header"><span class="message-sender">DeLEGEND AI</span></div>
+                <div class="typing-dots"><span></span><span></span><span></span></div>
             `;
             chatBox.appendChild(loadingDiv);
             chatBox.scrollTop = chatBox.scrollHeight;
@@ -72,47 +155,148 @@
                 const response = await fetch("/chat", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ message: messageText })
+                    body: JSON.stringify({ 
+                        message: messageText,
+                        history: conversationHistory.slice(0, -1)
+                    })
                 });
 
                 const data = await response.json();
-                
+                if (document.getElementById("typing-indicator")) {
+                    document.getElementById("typing-indicator").remove();
+                }
+
                 if (data.reply) {
-                    loadingDiv.classList.remove("loading-state");
-                    loadingDiv.innerHTML = `
-                        <div class="message-sender">DeLEGEND AI</div>
-                        <div class="message-content">${marked.parse(data.reply)}</div>
-                    `;
+                    appendBotMessage(data.reply);
+                    conversationHistory.push({ sender: "model", text: data.reply });
+                    saveCurrentSession();
                 } else {
-                    loadingDiv.innerHTML = `
-                        <div class="message-sender">System Error</div>
-                        <div class="message-content error-text">${data.error || "Failed to get response"}</div>
-                    `;
+                    appendErrorMessage(data.error || "System error encountered.");
                 }
             } catch (err) {
-                loadingDiv.innerHTML = `
-                    <div class="message-sender">System Error</div>
-                    <div class="message-content error-text">Network error. Please try again.</div>
-                `;
+                if (document.getElementById("typing-indicator")) {
+                    document.getElementById("typing-indicator").remove();
+                }
+                appendErrorMessage("Connection lost. Please try again.");
             }
 
             chatBox.scrollTop = chatBox.scrollHeight;
         }
 
-        function clearChat() {
+        function appendMessage(sender, text, className) {
+            const chatBox = document.getElementById("chat-box");
+            const msgDiv = document.createElement("div");
+            msgDiv.className = `message ${className}`;
+            msgDiv.innerHTML = `
+                <div class="message-header"><span class="message-sender">${sender}</span></div>
+                <div class="message-content">${escapeHtml(text)}</div>
+            `;
+            chatBox.appendChild(msgDiv);
+        }
+
+        function appendBotMessage(markdownText) {
+            const chatBox = document.getElementById("chat-box");
+            const msgDiv = document.createElement("div");
+            msgDiv.className = "message bot-message";
+            
+            const msgId = 'msg-' + Date.now();
+            msgDiv.innerHTML = `
+                <div class="message-header">
+                    <span class="message-sender">DeLEGEND AI</span>
+                    <button class="copy-btn" onclick="copyToClipboard('${msgId}')">Copy</button>
+                </div>
+                <div class="message-content" id="${msgId}">${marked.parse(markdownText)}</div>
+            `;
+            chatBox.appendChild(msgDiv);
+        }
+
+        function appendErrorMessage(errText) {
+            const chatBox = document.getElementById("chat-box");
+            const msgDiv = document.createElement("div");
+            msgDiv.className = "message bot-message error-message";
+            msgDiv.innerHTML = `
+                <div class="message-header"><span class="message-sender">System Warning</span></div>
+                <div class="message-content">${errText}</div>
+            `;
+            chatBox.appendChild(msgDiv);
+        }
+
+        function copyToClipboard(elementId) {
+            const text = document.getElementById(elementId).innerText;
+            navigator.clipboard.writeText(text).then(() => {
+                const btn = event.target;
+                btn.innerText = "Copied!";
+                setTimeout(() => btn.innerText = "Copy", 2000);
+            });
+        }
+
+        function saveCurrentSession() {
+            if (conversationHistory.length === 0) return;
+            const existingIndex = savedSessions.findIndex(s => s.id === currentSessionId);
+            const title = conversationHistory[0].text.substring(0, 28) + "...";
+            
+            const sessionData = { id: currentSessionId, title: title, history: conversationHistory };
+
+            if (existingIndex > -1) {
+                savedSessions[existingIndex] = sessionData;
+            } else {
+                savedSessions.unshift(sessionData);
+            }
+
+            localStorage.setItem('delegend_sessions', JSON.stringify(savedSessions));
+            renderHistoryList();
+        }
+
+        function renderHistoryList() {
+            const list = document.getElementById("history-list");
+            list.innerHTML = "";
+            savedSessions.forEach(session => {
+                const item = document.createElement("div");
+                item.className = `history-item ${session.id === currentSessionId ? 'active' : ''}`;
+                item.innerText = session.title;
+                item.onclick = () => loadSession(session.id);
+                list.appendChild(item);
+            });
+        }
+
+        function loadSession(id) {
+            const session = savedSessions.find(s => s.id === id);
+            if (!session) return;
+            currentSessionId = session.id;
+            conversationHistory = [...session.history];
+
+            const chatBox = document.getElementById("chat-box");
+            chatBox.innerHTML = "";
+
+            conversationHistory.forEach(msg => {
+                if (msg.sender === "user") {
+                    appendMessage("You", msg.text, "user-message");
+                } else {
+                    appendBotMessage(msg.text);
+                }
+            });
+
+            renderHistoryList();
+            toggleSidebar();
+        }
+
+        function startNewChat() {
+            currentSessionId = Date.now();
+            conversationHistory = [];
             const chatBox = document.getElementById("chat-box");
             chatBox.innerHTML = `
                 <div class="message bot-message">
-                    <div class="message-sender">DeLEGEND AI</div>
-                    <div class="message-content">Chat cleared. How can I help you?</div>
+                    <div class="message-header"><span class="message-sender">DeLEGEND AI</span></div>
+                    <div class="message-content">New session initialized. How can I assist you?</div>
                 </div>
             `;
+            renderHistoryList();
+            toggleSidebar();
         }
 
-        function handleKeyPress(event) {
-            if (event.key === "Enter") {
-                sendMessage();
-            }
+        function clearChat() {
+            conversationHistory = [];
+            startNewChat();
         }
 
         function escapeHtml(text) {
