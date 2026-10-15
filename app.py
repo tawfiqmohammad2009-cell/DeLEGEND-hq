@@ -20,9 +20,8 @@ def chat():
         return jsonify({"error": "Message cannot be empty"}), 400
 
     try:
-        # Using gemini-1.5-flash for maximum stability on the free tier
         response = client.models.generate_content(
-            model="gemini-1.5-flash",
+            model="gemini-flash-latest",
             contents=user_message,
         )
         return jsonify({"reply": response.text})
