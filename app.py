@@ -38,17 +38,23 @@ def index():
 
 @app.route("/chat", methods=["POST"])
 def chat():
-    # Read text message and history string from multipart form-data
-    user_message = request.form.get("message", "")
-    history_str = request.form.get("history", "[]")
-    
-    try:
-        history = json.loads(history_str)
-    except Exception:
-        history = []
+    user_message = ""
+    history = []
+    image_file = None
 
-    # Get optional attached image file
-    image_file = request.files.get("image")
+    # Supports BOTH JSON requests and Form Data
+    if request.is_json:
+        data = request.get_json() or {}
+        user_message = data.get("message", "")
+        history = data.get("history", [])
+    else:
+        user_message = request.form.get("message", "")
+        history_str = request.form.get("history", "[]")
+        try:
+            history = json.loads(history_str)
+        except Exception:
+            history = []
+        image_file = request.files.get("image")
 
     if not user_message and not image_file:
         return jsonify({"error": "Message or image cannot be empty"}), 400
@@ -59,7 +65,7 @@ def chat():
         role = "user" if item["sender"] == "user" else "model"
         contents.append({"role": role, "parts": [{"text": item["text"]}]})
 
-    # Build current user prompt parts (text + optional image)
+    # Build current user prompt parts
     user_parts = []
     if user_message:
         user_parts.append({"text": user_message})
@@ -96,3 +102,4 @@ def chat():
 
 if __name__ == "__main__":
     app.run(debug=True)
+
