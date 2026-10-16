@@ -1,7 +1,7 @@
 import os
 import time
 import json
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template_string, request, jsonify
 from google import genai
 from google.genai import types
 
@@ -32,40 +32,136 @@ SYSTEM_PERSONA = (
     "PERCEPTION NOT PERFECTION. ⚜️"
 )
 
+HTML_TEMPLATE = """
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DeLEGEND AI</title>
+    <style>
+        body { background-color: #121212; color: #e0e0e0; font-family: sans-serif; margin: 0; padding: 15px; display: flex; flex-direction: column; height: 90vh; box-sizing: border-box; }
+        h2 { color: #f39c12; margin: 0 0 10px 0; font-size: 1.2rem; }
+        #chat-container { flex: 1; overflow-y: auto; border: 1px solid #333; padding: 12px; margin-bottom: 12px; border-radius: 8px; background: #1e1e1e; }
+        .message { margin-bottom: 10px; padding: 10px; border-radius: 6px; line-height: 1.4; word-break: break-word; }
+        .user { background: #2c3e50; text-align: right; }
+        .model { background: #34495e; text-align: left; }
+        #chat-form { display: flex; gap: 8px; align-items: center; }
+        input[type="text"] { flex: 1; padding: 12px; border-radius: 6px; border: 1px solid #444; background: #222; color: #fff; font-size: 1rem; outline: none; }
+        button { padding: 12px 18px; border: none; border-radius: 6px; background: #f39c12; color: #000; font-weight: bold; cursor: pointer; transition: background 0.2s; }
+        /* Explicit styling for when the button is locked/disabled */
+        button:disabled { background: #444 !important; color: #888 !important; cursor: not-allowed; opacity: 0.7; }
+        #image-input { display: none; }
+        .attach-btn { background: #333; color: #fff; padding: 12px 14px; cursor: pointer; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; }
+    </style>
+</head>
+<body>
+    <h2>DeLEGEND AI</h2>
+    <div id="chat-container">
+        <div class="message model"><b>AI:</b> Welcome to DeLEGEND AI. Type a question or attach an image to begin.</div>
+    </div>
+
+    <form id="chat-form">
+        <input type="text" id="user-input" placeholder="Type your prompt..." autocomplete="off">
+        <label for="image-input" class="attach-btn" id="attach-label">📎</label>
+        <input type="file" id="image-input" accept="image/*">
+        <button type="submit" id="send-btn">Send</button>
+    </form>
+
+    <script>
+        const chatForm = document.getElementById('chat-form');
+        const userInput = document.getElementById('user-input');
+        const imageInput = document.getElementById('image-input');
+        const sendBtn = document.getElementById('send-btn');
+        const chatContainer = document.getElementById('chat-container');
+
+        let chatHistory = [];
+
+        chatForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const text = userInput.value.trim();
+            const imageFile = imageInput.files[0];
+
+            if (!text && !imageFile) return;
+
+            // 1. LOCK THE SEND BUTTON IMMEDIATELY
+            sendBtn.disabled = true;
+            sendBtn.textContent = "Thinking...";
+            userInput.disabled = true; // Also disable input to prevent multiple submissions
+
+            let userDisplay = text ? text : "";
+            if (imageFile) userDisplay += ` [Image: ${imageFile.name}]`;
+            chatContainer.innerHTML += `<div class="message user"><b>You:</b> ${userDisplay}</div>`;
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+
+            const formData = new FormData();
+            formData.append('message', text);
+            formData.append('history', JSON.stringify(chatHistory));
+            if (imageFile) {
+                formData.append('image', imageFile);
+            }
+
+            try {
+                const response = await fetch('/chat', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    chatContainer.innerHTML += `<div class="message model"><b>AI:</b> ${data.reply}</div>`;
+                    
+                    if (text) chatHistory.push({ sender: 'user', text: text });
+                    chatHistory.push({ sender: 'model', text: data.reply });
+
+                    userInput.value = '';
+                    imageInput.value = '';
+                } else {
+                    chatContainer.innerHTML += `<div class="message model" style="color: #e74c3c;"><b>Error:</b> ${data.error || "Something went wrong."}</div>`;
+                }
+            } catch (err) {
+                console.error("Network error:", err);
+                chatContainer.innerHTML += `<div class="message model" style="color: #e74c3c;"><b>Error:</b> Network failure.</div>`;
+            } finally {
+                // 2. UNLOCK THE BUTTON ONCE AI RESPONDS
+                sendBtn.disabled = false;
+                sendBtn.textContent = "Send";
+                userInput.disabled = false;
+                userInput.focus();
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            }
+        });
+    </script>
+</body>
+</html>
+"""
+
 @app.route("/")
 def index():
-    return render_template("index.html")
+    return render_template_string(HTML_TEMPLATE)
 
 @app.route("/chat", methods=["POST"])
 def chat():
-    user_message = ""
-    history = []
-    image_file = None
+    user_message = request.form.get("message", "")
+    history_str = request.form.get("history", "[]")
+    
+    try:
+        history = json.loads(history_str)
+    except Exception:
+        history = []
 
-    # Supports BOTH JSON requests and Form Data
-    if request.is_json:
-        data = request.get_json() or {}
-        user_message = data.get("message", "")
-        history = data.get("history", [])
-    else:
-        user_message = request.form.get("message", "")
-        history_str = request.form.get("history", "[]")
-        try:
-            history = json.loads(history_str)
-        except Exception:
-            history = []
-        image_file = request.files.get("image")
+    image_file = request.files.get("image")
 
     if not user_message and not image_file:
         return jsonify({"error": "Message or image cannot be empty"}), 400
 
-    # Build contents with full conversation history
     contents = []
     for item in history:
         role = "user" if item["sender"] == "user" else "model"
         contents.append({"role": role, "parts": [{"text": item["text"]}]})
 
-    # Build current user prompt parts
     user_parts = []
     if user_message:
         user_parts.append({"text": user_message})
