@@ -30,7 +30,7 @@
 
     <!-- MAIN CHAT APPLICATION -->
     <div id="chat-app" class="app-container hidden">
-        
+
         <!-- SIDEBAR CHAT HISTORY -->
         <aside id="sidebar" class="sidebar">
             <div class="sidebar-header">
@@ -57,7 +57,7 @@
                 </div>
                 <button class="clear-btn" onclick="clearChat()">Reset Chat</button>
             </header>
-            
+
             <!-- CHAT AREA -->
             <main class="chat-box" id="chat-box">
                 <div class="message bot-message">
@@ -79,11 +79,22 @@
             <!-- INPUT AREA -->
             <footer class="input-container">
                 <div class="input-wrapper">
+                    <!-- Hidden file input triggered by attachment button -->
+                    <input type="file" id="image-input" accept="image/*" style="display: none;" onchange="handleFileSelection(event)">
+                    
+                    <!-- Attachment Button -->
+                    <button id="attach-btn" type="button" onclick="document.getElementById('image-input').click()" title="Attach Image" style="background: none; border: none; cursor: pointer; padding: 0 8px; display: flex; align-items: center; justify-content: center;">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+                    </button>
+
                     <textarea id="user-input" placeholder="Type your prompt..." rows="1" onkeypress="handleKeyPress(event)"></textarea>
+                    
                     <button id="send-btn" onclick="sendMessage()">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
                     </button>
                 </div>
+                <!-- Optional file indicator preview notice -->
+                <div id="file-indicator" style="font-size: 11px; color: gold; padding: 2px 10px; display: none;"></div>
             </footer>
         </div>
     </div>
@@ -92,6 +103,7 @@
         let conversationHistory = [];
         let savedSessions = JSON.parse(localStorage.getItem('delegend_sessions') || '[]');
         let currentSessionId = Date.now();
+        let selectedFile = null;
 
         function enterApp() {
             document.getElementById('landing-page').classList.add('fade-out');
@@ -114,6 +126,18 @@
             }
         }
 
+        function handleFileSelection(event) {
+            selectedFile = event.target.files[0];
+            const indicator = document.getElementById('file-indicator');
+            if (selectedFile) {
+                indicator.innerText = `Attached: ${selectedFile.name}`;
+                indicator.style.display = 'block';
+            } else {
+                indicator.innerText = '';
+                indicator.style.display = 'none';
+            }
+        }
+
         function sendQuickAction(action) {
             const prompts = {
                 'Explain a Topic': 'Explain Quantum Computing in simple terms.',
@@ -130,15 +154,35 @@
             const chatBox = document.getElementById("chat-box");
             const messageText = inputField.value.trim();
 
-            if (!messageText) return;
+            if (!messageText && !selectedFile) return;
 
             const qa = document.getElementById("quick-actions");
             if (qa) qa.style.display = "none";
 
-            appendMessage("You", messageText, "user-message");
-            conversationHistory.push({ sender: "user", text: messageText });
+            let displayHtml = escapeHtml(messageText);
+            if (selectedFile) {
+                displayHtml += `<br><small>[Attached Image: ${selectedFile.name}]</small>`;
+            }
 
+            appendMessage("You", displayHtml, "user-message", true);
+            conversationHistory.push({ sender: "user", text: messageText || "[Image Attached]" });
+
+            // Prepare FormData for multipart submission
+            const formData = new FormData();
+            formData.append("message", messageText);
+            formData.append("history", JSON.stringify(conversationHistory.slice(0, -1)));
+            if (selectedFile) {
+                formData.append("image", selectedFile);
+            }
+
+            // Reset inputs
             inputField.value = "";
+            selectedFile = null;
+            document.getElementById('image-input').value = "";
+            const indicator = document.getElementById('file-indicator');
+            indicator.innerText = '';
+            indicator.style.display = 'none';
+
             chatBox.scrollTop = chatBox.scrollHeight;
 
             const loadingDiv = document.createElement("div");
@@ -152,13 +196,10 @@
             chatBox.scrollTop = chatBox.scrollHeight;
 
             try {
+                // Fetch using FormData (Do not set Content-Type header manually)
                 const response = await fetch("/chat", {
                     method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ 
-                        message: messageText,
-                        history: conversationHistory.slice(0, -1)
-                    })
+                    body: formData
                 });
 
                 const data = await response.json();
@@ -183,13 +224,13 @@
             chatBox.scrollTop = chatBox.scrollHeight;
         }
 
-        function appendMessage(sender, text, className) {
+        function appendMessage(sender, htmlContent, className, isHtml = false) {
             const chatBox = document.getElementById("chat-box");
             const msgDiv = document.createElement("div");
             msgDiv.className = `message ${className}`;
             msgDiv.innerHTML = `
                 <div class="message-header"><span class="message-sender">${sender}</span></div>
-                <div class="message-content">${escapeHtml(text)}</div>
+                <div class="message-content">${isHtml ? htmlContent : escapeHtml(htmlContent)}</div>
             `;
             chatBox.appendChild(msgDiv);
         }
@@ -198,7 +239,7 @@
             const chatBox = document.getElementById("chat-box");
             const msgDiv = document.createElement("div");
             msgDiv.className = "message bot-message";
-            
+
             const msgId = 'msg-' + Date.now();
             msgDiv.innerHTML = `
                 <div class="message-header">
@@ -234,7 +275,7 @@
             if (conversationHistory.length === 0) return;
             const existingIndex = savedSessions.findIndex(s => s.id === currentSessionId);
             const title = conversationHistory[0].text.substring(0, 28) + "...";
-            
+
             const sessionData = { id: currentSessionId, title: title, history: conversationHistory };
 
             if (existingIndex > -1) {
@@ -270,7 +311,7 @@
 
             conversationHistory.forEach(msg => {
                 if (msg.sender === "user") {
-                    appendMessage("You", msg.text, "user-message");
+                    appendMessage("You", msg.text, "user-message", false);
                 } else {
                     appendBotMessage(msg.text);
                 }
@@ -305,3 +346,4 @@
     </script>
 </body>
 </html>
+
