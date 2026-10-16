@@ -1,5 +1,6 @@
 import os
 import time
+import json
 from flask import Flask, render_template, request, jsonify
 from google import genai
 from google.genai import types
@@ -37,19 +38,38 @@ def index():
 
 @app.route("/chat", methods=["POST"])
 def chat():
-    data = request.get_json()
-    history = data.get("history", [])
-    user_message = data.get("message", "")
+    # Read text message and history string from multipart form-data
+    user_message = request.form.get("message", "")
+    history_str = request.form.get("history", "[]")
     
-    if not user_message:
-        return jsonify({"error": "Message cannot be empty"}), 400
+    try:
+        history = json.loads(history_str)
+    except Exception:
+        history = []
+
+    # Get optional attached image file
+    image_file = request.files.get("image")
+
+    if not user_message and not image_file:
+        return jsonify({"error": "Message or image cannot be empty"}), 400
 
     # Build contents with full conversation history
     contents = []
     for item in history:
         role = "user" if item["sender"] == "user" else "model"
         contents.append({"role": role, "parts": [{"text": item["text"]}]})
-    contents.append({"role": "user", "parts": [{"text": user_message}]})
+
+    # Build current user prompt parts (text + optional image)
+    user_parts = []
+    if user_message:
+        user_parts.append({"text": user_message})
+    
+    if image_file:
+        image_bytes = image_file.read()
+        mime_type = image_file.content_type or "image/jpeg"
+        user_parts.append(types.Part.from_bytes(data=image_bytes, mime_type=mime_type))
+
+    contents.append({"role": "user", "parts": user_parts})
 
     last_error = None
 
