@@ -32,6 +32,7 @@ SYSTEM_PERSONA = (
     "PERCEPTION NOT PERFECTION. ⚜️"
 )
 
+# Single-file HTML template rendered directly through Python
 HTML_TEMPLATE = """
 <!DOCTYPE html>
 <html lang="en">
@@ -40,19 +41,18 @@ HTML_TEMPLATE = """
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DeLEGEND AI</title>
     <style>
-        body { background-color: #121212; color: #e0e0e0; font-family: sans-serif; margin: 0; padding: 15px; display: flex; flex-direction: column; height: 90vh; box-sizing: border-box; }
+        body { background-color: #121212; color: #e0e0e0; font-family: sans-serif; margin: 0; padding: 15px; display: flex; flex-direction: column; height: 90vh; }
         h2 { color: #f39c12; margin: 0 0 10px 0; font-size: 1.2rem; }
         #chat-container { flex: 1; overflow-y: auto; border: 1px solid #333; padding: 12px; margin-bottom: 12px; border-radius: 8px; background: #1e1e1e; }
         .message { margin-bottom: 10px; padding: 10px; border-radius: 6px; line-height: 1.4; word-break: break-word; }
         .user { background: #2c3e50; text-align: right; }
         .model { background: #34495e; text-align: left; }
         #chat-form { display: flex; gap: 8px; align-items: center; }
-        input[type="text"] { flex: 1; padding: 12px; border-radius: 6px; border: 1px solid #444; background: #222; color: #fff; font-size: 1rem; outline: none; }
-        button { padding: 12px 18px; border: none; border-radius: 6px; background: #f39c12; color: #000; font-weight: bold; cursor: pointer; transition: background 0.2s; }
-        /* Explicit styling for when the button is locked/disabled */
-        button:disabled { background: #444 !important; color: #888 !important; cursor: not-allowed; opacity: 0.7; }
+        input[type="text"] { flex: 1; padding: 12px; border-radius: 6px; border: 1px solid #444; background: #222; color: #fff; font-size: 1rem; }
+        button { padding: 12px 18px; border: none; border-radius: 6px; background: #f39c12; color: #000; font-weight: bold; cursor: pointer; }
+        button:disabled { background: #555; color: #aaa; cursor: not-allowed; }
         #image-input { display: none; }
-        .attach-btn { background: #333; color: #fff; padding: 12px 14px; cursor: pointer; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; }
+        .attach-btn { background: #333; color: #fff; padding: 12px; cursor: pointer; border-radius: 6px; display: flex; align-items: center; justify-content: center; }
     </style>
 </head>
 <body>
@@ -63,7 +63,7 @@ HTML_TEMPLATE = """
 
     <form id="chat-form">
         <input type="text" id="user-input" placeholder="Type your prompt..." autocomplete="off">
-        <label for="image-input" class="attach-btn" id="attach-label">📎</label>
+        <label for="image-input" class="attach-btn">📎</label>
         <input type="file" id="image-input" accept="image/*">
         <button type="submit" id="send-btn">Send</button>
     </form>
@@ -85,13 +85,13 @@ HTML_TEMPLATE = """
 
             if (!text && !imageFile) return;
 
-            // 1. LOCK THE SEND BUTTON IMMEDIATELY
+            // 1. DISABLE SEND BUTTON IMMEDIATELY (Stays locked until AI responds)
             sendBtn.disabled = true;
             sendBtn.textContent = "Thinking...";
-            userInput.disabled = true; // Also disable input to prevent multiple submissions
 
+            // Append user message to UI
             let userDisplay = text ? text : "";
-            if (imageFile) userDisplay += ` [Image: ${imageFile.name}]`;
+            if (imageFile) userDisplay += " [Attached Image]";
             chatContainer.innerHTML += `<div class="message user"><b>You:</b> ${userDisplay}</div>`;
             chatContainer.scrollTop = chatContainer.scrollHeight;
 
@@ -119,17 +119,15 @@ HTML_TEMPLATE = """
                     userInput.value = '';
                     imageInput.value = '';
                 } else {
-                    chatContainer.innerHTML += `<div class="message model" style="color: #e74c3c;"><b>Error:</b> ${data.error || "Something went wrong."}</div>`;
+                    alert(data.error || "Error occurred.");
                 }
             } catch (err) {
                 console.error("Network error:", err);
-                chatContainer.innerHTML += `<div class="message model" style="color: #e74c3c;"><b>Error:</b> Network failure.</div>`;
+                alert("Network error occurred.");
             } finally {
-                // 2. UNLOCK THE BUTTON ONCE AI RESPONDS
+                // 2. UNLOCK BUTTON ONCE AI FINISHES
                 sendBtn.disabled = false;
                 sendBtn.textContent = "Send";
-                userInput.disabled = false;
-                userInput.focus();
                 chatContainer.scrollTop = chatContainer.scrollHeight;
             }
         });
