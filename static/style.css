@@ -1,3 +1,4 @@
+cat << 'EOF' > static/style.css
 :root {
     --bg-black: #050505;
     --card-bg: #0d0d0d;
@@ -32,7 +33,7 @@ html, body {
 
 .hidden { display: none !important; }
 
-/* LANDING PAGE STYLES */
+/* LANDING PAGE STYLES WITH CUSTOM BACKGROUND IMAGE */
 .landing-container {
     width: 100vw;
     height: 100vh;
@@ -42,7 +43,10 @@ html, body {
     align-items: center;
     text-align: center;
     padding: 20px;
-    background: radial-gradient(circle at center, #111116 0%, #050505 100%);
+    background-image: linear-gradient(rgba(5, 5, 5, 0.65), rgba(5, 5, 5, 0.65)), url('DeLEGEND.png');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
     transition: opacity 0.3s ease;
 }
 
@@ -429,3 +433,5 @@ textarea {
     .sidebar { position: relative; left: 0; }
     .close-sidebar, .menu-btn, .overlay { display: none !important; }
 }
+EOF
+
