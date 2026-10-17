@@ -85,30 +85,44 @@ def chat():
               "create an image",
               "generate an image",
               "picture of",
+              "make an image",
           ]
       )
   )
 
   if is_gen_request:
     try:
-      result = client.models.generate_images(
-          model="imagen-3.0-generate-002",
-          prompt=user_message,
-          config=types.GenerateImagesConfig(
-              number_of_images=1,
-              output_mime_type="image/jpeg",
+      response = client.models.generate_content(
+          model="gemini-2.5-flash",
+          contents=user_message,
+          config=types.GenerateContentConfig(
+              response_modalities=["TEXT", "IMAGE"],
           ),
       )
-      if result.generated_images:
-        img_bytes = result.generated_images[0].image.image_bytes
-        img_b64 = base64.b64encode(img_bytes).decode("utf-8")
+
+      image_b64 = None
+      reply_text = ""
+
+      if response.candidates and response.candidates[0].content.parts:
+        for part in response.candidates[0].content.parts:
+          if part.text:
+            reply_text += part.text
+          elif part.inline_data:
+            img_bytes = part.inline_data.data
+            image_b64 = base64.b64encode(img_bytes).decode("utf-8")
+
+      if image_b64:
         return jsonify({
-            "reply": "Here is your generated image:",
-            "image": f"data:image/jpeg;base64,{img_b64}",
+            "reply": (
+                reply_text
+                if reply_text
+                else "Here is your generated image:"
+            ),
+            "image": f"data:image/jpeg;base64,{image_b64}",
             "type": "image",
         })
     except Exception as e:
-      # If image generation model fails, fall back to chat response
+      # If image generation model fails, fall back to main chat response loop
       pass
 
   # --- OPTION B: CHAT / IMAGE EDITING / VISION ANALYSIS ---
