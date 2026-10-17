@@ -2,6 +2,7 @@ import base64
 import json
 import os
 import time
+import urllib.parse
 from flask import Flask, jsonify, render_template, request
 from google import genai
 from google.genai import types
@@ -86,11 +87,25 @@ def chat():
               "generate an image",
               "picture of",
               "make an image",
+              "generate a picture",
           ]
       )
   )
 
   if is_gen_request:
+    # 1. First attempt: Instant Image Generation via Pollinations Engine
+    try:
+      encoded_prompt = urllib.parse.quote(user_message)
+      image_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}"
+      return jsonify({
+          "reply": f"Here is your generated image for: *{user_message}* 🥶👑",
+          "image": image_url,
+          "type": "image",
+      })
+    except Exception:
+      pass
+
+    # 2. Fallback attempt: Gemini Multimodal Generation
     try:
       response = client.models.generate_content(
           model="gemini-2.5-flash",
