@@ -98,7 +98,7 @@ def send_creator_email(username, message_text):
 # Initialize the Gemini Client
 client = genai.Client(
     api_key=os.environ.get("GEMINI_API_KEY"),
-    http_options=types.HttpOptions(timeout=7000),
+    http_options=types.HttpOptions(timeout=15000),
 )
 
 MODELS_TO_TRY = [
