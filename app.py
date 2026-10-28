@@ -96,7 +96,10 @@ def send_creator_email(username, message_text):
 
 
 # Initialize the Gemini Client
-client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
+client = genai.Client(
+    api_key=os.environ.get("GEMINI_API_KEY"),
+    http_options=types.HttpOptions(timeout=7000),
+)
 
 MODELS_TO_TRY = [
     "gemini-flash-latest",
@@ -248,35 +251,23 @@ def chat():
 
   contents.append({"role": "user", "parts": user_parts})
 
-  last_error = None
+  model_name = MODELS_TO_TRY[0]
 
-  for model_name in MODELS_TO_TRY:
-    for attempt in range(3):
-      try:
-        response = client.models.generate_content(
-            model=model_name,
-            contents=contents,
-            config=types.GenerateContentConfig(
-                system_instruction=SYSTEM_PERSONA
-            ),
-        )
-        return jsonify({"reply": response.text})
-      except Exception as e:
-        last_error = str(e)
-        app.logger.exception(
-            "Gemini request failed for model %s, attempt %s",
-            model_name, attempt + 1
-        )
-        if "503" in last_error or "UNAVAILABLE" in last_error:
-          time.sleep(2)
-          continue
-        else:
-          break
-
-  app.logger.error("All Gemini models failed. Last error: %s", last_error)
-  return jsonify(
-      {"error": "DeLEGEND AI could not generate a response. Please try again."}
-  ), 503
+  try:
+    response = client.models.generate_content(
+        model=model_name,
+        contents=contents,
+        config=types.GenerateContentConfig(
+            system_instruction=SYSTEM_PERSONA,
+            max_output_tokens=512,
+        ),
+    )
+    return jsonify({"reply": response.text})
+  except Exception:
+    app.logger.exception("Gemini request failed for model %s", model_name)
+    return jsonify({
+        "error": "DeLEGEND AI could not respond in time. Please try again."
+    }), 503
 
 
 

@@ -202,12 +202,26 @@
 
             try {
                 // Fetch using FormData (Do not set Content-Type header manually)
-                const response = await fetch("/chat", {
-                    method: "POST",
-                    body: formData
-                });
+                const controller = new AbortController();
+                const requestTimer = setTimeout(() => controller.abort(), 10000);
 
-                const data = await response.json();
+                let response;
+                let data;
+
+                try {
+                    response = await fetch("/chat", {
+                        method: "POST",
+                        body: formData,
+                        signal: controller.signal
+                    });
+                    data = await response.json();
+                } finally {
+                    clearTimeout(requestTimer);
+                }
+
+                if (!response.ok && !data.error) {
+                    data.error = `Server error (${response.status}). Please try again.`;
+                }
                 if (document.getElementById("typing-indicator")) {
                     document.getElementById("typing-indicator").remove();
                 }
@@ -230,7 +244,13 @@
                 if (document.getElementById("typing-indicator")) {
                     document.getElementById("typing-indicator").remove();
                 }
-                appendErrorMessage("Connection lost. Please try again.");
+
+                if (err.name === "AbortError") {
+                    appendErrorMessage("This request took too long. Please try again.");
+                } else {
+                    console.error("Chat request failed:", err);
+                    appendErrorMessage("Could not reach DeLEGEND AI. Please try again.");
+                }
             }
 
             chatBox.scrollTop = chatBox.scrollHeight;
