@@ -4,10 +4,96 @@ import os
 import time
 import urllib.parse
 from flask import Flask, jsonify, render_template, request
+
+from flask import redirect, url_for
+from flask_sqlalchemy import SQLAlchemy
+from flask_login import (
+    LoginManager, UserMixin, login_user,
+    login_required, logout_user, current_user
+)
+from werkzeug.security import generate_password_hash, check_password_hash
+from sqlalchemy.exc import IntegrityError
+
 from google import genai
 from google.genai import types
 
 app = Flask(__name__)
+
+# DELEGEND_AUTH_INSTALLED
+app.config["SECRET_KEY"] = os.environ.get(
+    "SECRET_KEY", "dev-only-change-this-before-deploy"
+)
+app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get(
+    "DATABASE_URL", "sqlite:///delegend.db"
+)
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+
+db = SQLAlchemy(app)
+login_manager = LoginManager(app)
+login_manager.login_view = "auth_page"
+
+
+class User(UserMixin, db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(30), unique=True, nullable=False)
+    password_hash = db.Column(db.String(255), nullable=False)
+
+
+class CreatorMessage(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    message = db.Column(db.String(1500), nullable=False)
+
+
+@login_manager.user_loader
+def load_user(user_id):
+    try:
+        return db.session.get(User, int(user_id))
+    except (ValueError, TypeError):
+        return None
+
+
+with app.app_context():
+    db.create_all()
+
+
+
+
+import smtplib
+import ssl
+from email.message import EmailMessage
+
+
+
+def send_creator_email(username, message_text):
+    """Email a creator message using environment-based SMTP credentials."""
+    mail_username = os.environ.get("MAIL_USERNAME")
+    mail_password = os.environ.get("MAIL_PASSWORD")
+    creator_email = os.environ.get("CREATOR_EMAIL")
+    mail_server = os.environ.get("MAIL_SERVER", "smtp.gmail.com")
+    mail_port = int(os.environ.get("MAIL_PORT", "587"))
+
+    if not all([mail_username, mail_password, creator_email]):
+        raise RuntimeError("Email environment variables are missing.")
+
+    email = EmailMessage()
+    email["Subject"] = f"New DeLEGEND AI message from {username}"
+    email["From"] = mail_username
+    email["To"] = creator_email
+    email.set_content(
+        "A registered user sent a message through DeLEGEND AI.\n\n"
+        f"Username: {username}\n\n"
+        f"Message:\n{message_text}\n"
+    )
+
+    context = ssl.create_default_context()
+    with smtplib.SMTP(mail_server, mail_port, timeout=20) as server:
+        server.ehlo()
+        server.starttls(context=context)
+        server.ehlo()
+        server.login(mail_username, mail_password)
+        server.send_message(email)
+
 
 # Initialize the Gemini Client
 client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
@@ -53,6 +139,7 @@ def index():
 
 
 @app.route("/chat", methods=["POST"])
+@login_required
 def chat():
   # Support both FormData (for images) and JSON requests
   if request.is_json:
@@ -185,6 +272,116 @@ def chat():
   return jsonify(
       {"error": "DeLEGEND AI network busy. Retrying momentarily..."}
   ), 503
+
+
+
+
+@app.route("/auth", methods=["GET"])
+def auth_page():
+    if current_user.is_authenticated:
+        return redirect(url_for("app_page"))
+    return render_template("auth.html")
+
+
+@app.route("/auth/register", methods=["POST"])
+def register():
+    data = request.get_json(silent=True) or {}
+    username = data.get("username", "").strip()
+    password = data.get("password", "")
+    confirmation = data.get("confirm_password", "")
+
+    if not 3 <= len(username) <= 30:
+        return jsonify(error="Username must contain 3 to 30 characters."), 400
+
+    if not username.replace("_", "").isalnum():
+        return jsonify(error="Use letters, numbers, and underscores only."), 400
+
+    if len(password) < 8:
+        return jsonify(error="Password must contain at least 8 characters."), 400
+
+    if password != confirmation:
+        return jsonify(error="Your passwords do not match."), 400
+
+    user = User(
+        username=username,
+        password_hash=generate_password_hash(password)
+    )
+    db.session.add(user)
+
+    try:
+        db.session.commit()
+    except IntegrityError:
+        db.session.rollback()
+        return jsonify(error="That username is already registered."), 409
+
+    login_user(user)
+    return jsonify(
+        message="Account created successfully.",
+        redirect=url_for("app_page")
+    )
+
+
+@app.route("/auth/login", methods=["POST"])
+def login():
+    data = request.get_json(silent=True) or {}
+    username = data.get("username", "").strip()
+    password = data.get("password", "")
+    creator_message = data.get("creator_message", "").strip()[:1500]
+
+    user = User.query.filter_by(username=username).first()
+
+    if not user or not check_password_hash(user.password_hash, password):
+        return jsonify(error="Incorrect username or password."), 401
+
+    login_user(user)
+
+    if creator_message:
+        saved_message = CreatorMessage(
+            user_id=user.id,
+            message=creator_message
+        )
+        db.session.add(saved_message)
+
+        try:
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+            app.logger.exception("Could not save creator message.")
+            return jsonify(
+                error="Login succeeded, but the message could not be saved."
+            ), 500
+
+        try:
+            send_creator_email(user.username, creator_message)
+        except Exception:
+            app.logger.exception("Creator email delivery failed.")
+            return jsonify(
+                message=(
+                    "Login succeeded. Your message was saved, but email "
+                    "delivery failed. Please check the email configuration."
+                ),
+                email_status="failed",
+                redirect=url_for("app_page")
+            )
+
+    return jsonify(
+        message="Login successful.",
+        email_status="sent" if creator_message else "not_requested",
+        redirect=url_for("app_page")
+    )
+
+
+@app.route("/auth/logout", methods=["POST"])
+@login_required
+def logout():
+    logout_user()
+    return jsonify(redirect=url_for("auth_page"))
+
+
+@app.route("/app", methods=["GET"])
+@login_required
+def app_page():
+    return render_template("index.html", open_chat=True)
 
 
 if __name__ == "__main__":

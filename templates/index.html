@@ -26,7 +26,7 @@
             </div>
             <h1 class="hero-title">NEXT-GEN INTELLIGENCE</h1>
             <p class="hero-subtitle">Brought to life by DeLEGEND. Experience tailored, rapid-response AI engineered for total clarity and high performance.</p>
-            <button class="cta-gold-btn" onclick="enterApp()">
+            <button class="cta-gold-btn" onclick="window.location.href='/auth'">
                 <span>START CHATTING</span>
                 <span class="btn-arrow">→</span>
             </button>
@@ -366,6 +366,10 @@
         function escapeHtml(text) {
             return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
         }
+
+        {% if open_chat|default(false) %}
+        enterApp();
+        {% endif %}
     </script>
 </body>
 </html>
