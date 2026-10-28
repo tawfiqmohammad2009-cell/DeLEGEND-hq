@@ -1,0 +1,342 @@
+<!DOCTYPE html><html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Access | DeLEGEND AI</title><style>
+    * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+        font-family: Arial, sans-serif;
+    }
+
+    body {
+        min-height: 100vh;
+        background: #080808;
+        color: #fff;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+    }
+
+    .container {
+        width: 100%;
+        max-width: 440px;
+        background: #111;
+        border: 1px solid #292929;
+        border-radius: 18px;
+        padding: 30px 24px;
+        box-shadow: 0 0 35px rgba(212, 175, 55, 0.08);
+    }
+
+    .logo {
+        text-align: center;
+        color: #d4af37;
+        font-size: 27px;
+        font-weight: 900;
+        letter-spacing: 2px;
+        margin-bottom: 8px;
+    }
+
+    .subtitle {
+        text-align: center;
+        color: #999;
+        font-size: 13px;
+        margin-bottom: 25px;
+    }
+
+    .tabs {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 24px;
+    }
+
+    .tabs button {
+        flex: 1;
+        padding: 12px;
+        background: #1b1b1b;
+        color: #aaa;
+        border: 1px solid #333;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: bold;
+    }
+
+    .tabs button.active {
+        background: #d4af37;
+        color: #080808;
+        border-color: #d4af37;
+    }
+
+    .field {
+        margin-bottom: 16px;
+    }
+
+    label {
+        display: block;
+        color: #ddd;
+        font-size: 13px;
+        margin-bottom: 7px;
+    }
+
+    input, textarea {
+        width: 100%;
+        padding: 13px;
+        background: #080808;
+        color: white;
+        border: 1px solid #383838;
+        border-radius: 8px;
+        outline: none;
+        font-size: 14px;
+    }
+
+    input:focus, textarea:focus {
+        border-color: #d4af37;
+    }
+
+    textarea {
+        min-height: 100px;
+        resize: vertical;
+    }
+
+    .hidden {
+        display: none;
+    }
+
+    .creator-box {
+        margin-top: 24px;
+        padding: 16px;
+        border: 1px solid #8d7221;
+        background: #17140a;
+        border-radius: 10px;
+    }
+
+    .creator-box h3 {
+        color: #d4af37;
+        font-size: 14px;
+        letter-spacing: 1px;
+        margin-bottom: 8px;
+    }
+
+    .creator-box p {
+        color: #aaa;
+        font-size: 12px;
+        line-height: 1.6;
+        margin-bottom: 12px;
+    }
+
+    .submit {
+        width: 100%;
+        padding: 14px;
+        background: #d4af37;
+        color: #080808;
+        border: none;
+        border-radius: 8px;
+        font-weight: 900;
+        cursor: pointer;
+        margin-top: 8px;
+    }
+
+    .submit:disabled {
+        opacity: 0.6;
+        cursor: wait;
+    }
+
+    .message {
+        display: none;
+        padding: 12px;
+        margin-bottom: 16px;
+        border-radius: 8px;
+        font-size: 13px;
+        line-height: 1.5;
+    }
+
+    .back {
+        display: block;
+        text-align: center;
+        color: #aaa;
+        text-decoration: none;
+        font-size: 13px;
+        margin-top: 20px;
+    }
+
+    .back:hover {
+        color: #d4af37;
+    }
+</style>
+
+</head><body>
+    <main class="container">
+        <div class="logo">DeLEGEND AI</div>
+        <p class="subtitle">YOUR INTELLIGENCE. YOUR IDENTITY.</p>    <div class="tabs">
+        <button id="loginTab" class="active" type="button"
+                onclick="showForm('login')">LOGIN</button>
+
+        <button id="registerTab" type="button"
+                onclick="showForm('register')">REGISTER</button>
+    </div>
+
+    <div id="notice" class="message" role="status"></div>
+
+    <form id="authForm">
+        <div class="field">
+            <label for="username">Username</label>
+            <input id="username" name="username"
+                   type="text" minlength="3" maxlength="30"
+                   autocomplete="username" required
+                   placeholder="Enter your username">
+        </div>
+
+        <div id="confirmField" class="field hidden">
+            <label for="confirmPassword">Confirm password</label>
+            <input id="confirmPassword" name="confirm_password"
+                   type="password" autocomplete="new-password"
+                   placeholder="Confirm your password">
+        </div>
+
+        <div class="field">
+            <label for="password">Password</label>
+            <input id="password" name="password"
+                   type="password" minlength="8"
+                   autocomplete="current-password" required
+                   placeholder="Enter your password">
+        </div>
+
+        <section id="creatorBox" class="creator-box hidden">
+            <h3>A WORD WITH DeLEGEND</h3>
+            <p>
+                Leave a message for the creator. Your message will be
+                submitted privately when you log in. Never enter your
+                password in this message.
+            </p>
+
+            <label for="creatorMessage">Your message (optional)</label>
+            <textarea id="creatorMessage" name="creator_message"
+                      maxlength="1500"
+                      placeholder="Write your message to the creator..."></textarea>
+        </section>
+
+        <button id="submitButton" class="submit" type="submit">
+            LOGIN TO DeLEGEND AI
+        </button>
+    </form>
+
+    <a class="back" href="/">← Back to homepage</a>
+</main>
+
+<script>
+    let currentMode = "login";
+
+    function showForm(mode) {
+        currentMode = mode;
+
+        document.getElementById("loginTab")
+            .classList.toggle("active", mode === "login");
+
+        document.getElementById("registerTab")
+            .classList.toggle("active", mode === "register");
+
+        document.getElementById("confirmField")
+            .classList.toggle("hidden", mode !== "register");
+
+        document.getElementById("creatorBox")
+            .classList.toggle("hidden", mode !== "login");
+
+        document.getElementById("confirmPassword").required =
+            mode === "register";
+
+        document.getElementById("password").autocomplete =
+            mode === "register" ? "new-password" : "current-password";
+
+        document.getElementById("submitButton").textContent =
+            mode === "register"
+                ? "CREATE ACCOUNT"
+                : "LOGIN TO DeLEGEND AI";
+
+        document.getElementById("notice").style.display = "none";
+    }
+
+    function showNotice(message, success = false) {
+        const box = document.getElementById("notice");
+        box.textContent = message;
+        box.style.display = "block";
+        box.style.color = success ? "#8be0a0" : "#ff9999";
+        box.style.background = success ? "#102016" : "#281010";
+    }
+
+    document.getElementById("authForm").addEventListener(
+        "submit", async function(event) {
+            event.preventDefault();
+
+            const username =
+                document.getElementById("username").value.trim();
+
+            const password =
+                document.getElementById("password").value;
+
+            const confirmPassword =
+                document.getElementById("confirmPassword").value;
+
+            const creatorMessage =
+                document.getElementById("creatorMessage").value.trim();
+
+            if (currentMode === "register" &&
+                password !== confirmPassword) {
+                showNotice("Your passwords do not match.");
+                return;
+            }
+
+            const button = document.getElementById("submitButton");
+            button.disabled = true;
+            button.textContent = "PLEASE WAIT...";
+
+            try {
+                const response = await fetch("/auth/" + currentMode, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        username: username,
+                        password: password,
+                        confirm_password: confirmPassword,
+                        creator_message: creatorMessage
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    showNotice(data.error || "Authentication failed.");
+                    return;
+                }
+
+                if (data.redirect) {
+                    window.location.href = data.redirect;
+                    return;
+                }
+
+                showNotice(
+                    data.message || "Request completed successfully.",
+                    true
+                );
+
+            } catch (error) {
+                showNotice(
+                    "Could not connect to the server. Check your connection."
+                );
+            } finally {
+                button.disabled = false;
+                button.textContent =
+                    currentMode === "register"
+                        ? "CREATE ACCOUNT"
+                        : "LOGIN TO DeLEGEND AI";
+            }
+        }
+    );
+</script>
+
+</body>
+</html>
+
