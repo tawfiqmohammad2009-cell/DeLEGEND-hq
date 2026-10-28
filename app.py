@@ -263,14 +263,19 @@ def chat():
         return jsonify({"reply": response.text})
       except Exception as e:
         last_error = str(e)
+        app.logger.exception(
+            "Gemini request failed for model %s, attempt %s",
+            model_name, attempt + 1
+        )
         if "503" in last_error or "UNAVAILABLE" in last_error:
           time.sleep(2)
           continue
         else:
           break
 
+  app.logger.error("All Gemini models failed. Last error: %s", last_error)
   return jsonify(
-      {"error": "DeLEGEND AI network busy. Retrying momentarily..."}
+      {"error": "DeLEGEND AI could not generate a response. Please try again."}
   ), 503
 
 
